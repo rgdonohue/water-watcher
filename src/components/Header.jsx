@@ -1,0 +1,44 @@
+import React from 'react'
+
+const Header = () => {
+  const currentTime = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Denver',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  })
+
+  return (
+    <header className="header">
+      <div className="container">
+        <div className="header-content">
+          <div className="header-brand">
+            <h3 className="brand-title">Water Watcher</h3>
+            <span className="brand-subtitle">Colorado Plateau</span>
+          </div>
+          
+          <nav className="header-nav">
+            <a href="#monitoring" className="nav-link">Monitoring</a>
+            <a href="#data" className="nav-link">Data</a>
+            <a href="#about" className="nav-link">About</a>
+          </nav>
+          
+          <div className="header-status">
+            <div className="status-indicator">
+              <span className="status-dot status-online"></span>
+              <span className="status-text">Live Data</span>
+            </div>
+            <div className="current-time">
+              <span className="time-label">Updated:</span>
+              <span className="time-value">{currentTime}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export default Header 
