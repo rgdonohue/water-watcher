@@ -1,0 +1,52 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "San Juan River Basin",
+        "huc": "14080000",
+        "area_sqkm": 60950,
+        "description": "Upper San Juan River Basin"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-109.5, 37.5],
+          [-107.0, 37.5],
+          [-106.5, 37.2],
+          [-106.8, 36.8],
+          [-107.2, 36.5],
+          [-108.0, 36.2],
+          [-109.0, 36.0],
+          [-110.2, 36.2],
+          [-110.5, 36.8],
+          [-110.2, 37.2],
+          [-109.8, 37.4],
+          [-109.5, 37.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature", 
+      "properties": {
+        "name": "Lower San Juan River Basin",
+        "huc": "14080100",
+        "area_sqkm": 15200,
+        "description": "Lower San Juan River Basin"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-110.2, 36.2],
+          [-109.0, 36.0],
+          [-108.8, 35.8],
+          [-109.2, 35.5],
+          [-110.0, 35.7],
+          [-110.8, 36.0],
+          [-110.2, 36.2]
+        ]]
+      }
+    }
+  ]
+} 

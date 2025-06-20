@@ -1,4 +1,6 @@
 /* Design System - Water Watcher */
+@import 'leaflet/dist/leaflet.css';
+
 :root {
   /* Earth tone palette with blue accent */
   --color-sand: #F5F1EB;
@@ -15,6 +17,7 @@
   
   /* Typography */
   --font-primary: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-2xs: 0.625rem;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -36,6 +39,7 @@
   --space-20: 5rem;
   
   /* Layout */
+  --border-radius-sm: 6px;
   --border-radius: 8px;
   --border-radius-lg: 12px;
   --max-width-container: 1200px;
@@ -269,11 +273,23 @@ p {
   color: var(--color-slate-dark);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--border-radius);
 }
 
 .nav-link:hover {
   color: var(--color-water);
+  background: var(--color-sand);
+}
+
+.nav-link.active {
+  color: var(--color-water);
+  background: var(--color-sand-dark);
+  font-weight: 600;
 }
 
 .header-status {
@@ -643,5 +659,453 @@ p {
   
   .table-cell {
     padding: var(--space-1) 0;
+  }
+}
+
+/* Map Styles */
+.map-section {
+  background: white;
+  padding: var(--space-8) 0;
+}
+
+.water-map-container {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-sand-dark);
+  overflow: hidden;
+}
+
+.map-header {
+  padding: var(--space-6);
+  background: var(--color-sand);
+  border-bottom: 1px solid var(--color-sand-dark);
+}
+
+.map-header h3 {
+  margin: 0 0 var(--space-2) 0;
+  color: var(--color-forest);
+}
+
+.map-header p {
+  margin: 0 0 var(--space-4) 0;
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+}
+
+.map-legend {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-slate);
+}
+
+.legend-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.map-wrapper {
+  position: relative;
+  height: 500px;
+  background: var(--color-sand);
+}
+
+.water-map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Leaflet customizations */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.map-popup {
+  padding: var(--space-4);
+  min-width: 250px;
+}
+
+.map-popup h4 {
+  margin: 0 0 var(--space-3) 0;
+  color: var(--color-forest);
+  font-size: var(--font-size-base);
+}
+
+.popup-info {
+  margin-bottom: var(--space-4);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-sand);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .label {
+  font-size: var(--font-size-xs);
+  color: var(--color-slate);
+  font-weight: 500;
+}
+
+.info-row .value {
+  font-size: var(--font-size-xs);
+  color: var(--color-forest);
+  font-weight: 600;
+}
+
+.value.status-online {
+  color: var(--color-success);
+}
+
+.value.status-offline {
+  color: var(--color-slate);
+}
+
+.popup-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btn-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  border-radius: var(--border-radius-sm);
+}
+
+.selected-site-info {
+  padding: var(--space-4) var(--space-6);
+  background: linear-gradient(135deg, var(--color-sand) 0%, var(--color-sand-dark) 100%);
+  border-top: 1px solid var(--color-sand-dark);
+}
+
+.selected-site-info h4 {
+  margin: 0 0 var(--space-1) 0;
+  color: var(--color-forest);
+  font-size: var(--font-size-base);
+}
+
+.selected-site-info p {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: var(--font-size-sm);
+}
+
+/* Map loading and error states */
+.water-map-loading,
+.water-map-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  text-align: center;
+  color: var(--color-slate);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-sand-dark);
+  border-top: 3px solid var(--color-river);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--space-4);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.water-map-error h3 {
+  color: var(--color-error);
+  margin-bottom: var(--space-2);
+}
+
+.water-map-error p {
+  margin-bottom: var(--space-4);
+}
+
+/* Mobile responsive adjustments for map */
+@media (max-width: 768px) {
+  .map-wrapper {
+    height: 400px;
+  }
+  
+  .map-legend {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .legend-item {
+    font-size: var(--font-size-2xs);
+  }
+  
+  .map-popup {
+    min-width: 200px;
+    padding: var(--space-3);
+  }
+  
+  .popup-actions {
+    flex-direction: column;
+  }
+  
+  .selected-site-info {
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  /* Ensure map markers are touch-friendly */
+  .leaflet-marker-icon {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-wrapper {
+    height: 350px;
+  }
+  
+  .map-header {
+    padding: var(--space-4);
+  }
+  
+  .map-legend {
+    display: none; /* Hide legend on very small screens */
+  }
+}
+
+/* About Page Styles */
+.about-page {
+  background: white;
+}
+
+.about-hero {
+  background: linear-gradient(135deg, var(--color-sand) 0%, var(--color-sand-dark) 100%);
+  padding: var(--space-16) 0;
+}
+
+.mission-section,
+.features-section,
+.data-sources-section,
+.audience-section,
+.technology-section {
+  padding: var(--space-16) 0;
+}
+
+.features-section {
+  background: var(--color-sand);
+}
+
+.audience-section {
+  background: var(--color-sand);
+}
+
+.cta-section {
+  background: linear-gradient(135deg, var(--color-water) 0%, var(--color-water-light) 100%);
+  color: white;
+  padding: var(--space-16) 0;
+  text-align: center;
+}
+
+.cta-content h2 {
+  color: white;
+  margin-bottom: var(--space-4);
+}
+
+.cta-content p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-8);
+}
+
+.cta-buttons {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+}
+
+.lead {
+  font-size: var(--font-size-lg);
+  line-height: 1.7;
+  color: var(--color-slate-dark);
+}
+
+.feature-card,
+.audience-card {
+  padding: var(--space-6);
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-sand-dark);
+  text-align: center;
+}
+
+.feature-icon {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--space-4);
+}
+
+.feature-card h3,
+.audience-card h3 {
+  margin-bottom: var(--space-3);
+  color: var(--color-forest);
+}
+
+.data-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.data-source {
+  padding: var(--space-6);
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-sand-dark);
+  position: relative;
+}
+
+.data-source h4 {
+  color: var(--color-forest);
+  margin-bottom: var(--space-3);
+}
+
+.data-badge {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--color-water);
+  color: white;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.tech-stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+
+.tech-group h4 {
+  color: var(--color-forest);
+  margin-bottom: var(--space-4);
+  border-bottom: 2px solid var(--color-sand-dark);
+  padding-bottom: var(--space-2);
+}
+
+.tech-group ul {
+  list-style: none;
+}
+
+.tech-group li {
+  padding: var(--space-2) 0;
+  color: var(--color-slate-dark);
+  position: relative;
+  padding-left: var(--space-4);
+}
+
+.tech-group li::before {
+  content: '•';
+  color: var(--color-water);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+/* Updated map legend styles */
+.legend-title {
+  font-weight: 600;
+  color: var(--color-forest);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.legend-marker.proportional-large {
+  width: 18px;
+  height: 18px;
+}
+
+.legend-marker.proportional-medium {
+  width: 14px;
+  height: 14px;
+}
+
+.legend-marker.proportional-small {
+  width: 10px;
+  height: 10px;
+}
+
+.legend-note {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-sand-dark);
+  color: var(--color-slate);
+}
+
+/* Watershed popup styles */
+.watershed-popup h4 {
+  color: var(--color-forest);
+  margin-bottom: var(--space-2);
+}
+
+/* Custom div icon styles */
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+@media (max-width: 768px) {
+  .cta-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .data-sources-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tech-stack {
+    grid-template-columns: 1fr;
+  }
+  
+  .about-hero {
+    padding: var(--space-12) 0;
+  }
+  
+  .mission-section,
+  .features-section,
+  .data-sources-section,
+  .audience-section,
+  .technology-section {
+    padding: var(--space-12) 0;
   }
 } 

@@ -1,9 +1,18 @@
 export default {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '^leaflet/dist/leaflet\\.css$': 'identity-obj-proxy',
   },
+  testPathIgnorePatterns: [
+    '<rootDir>/venv/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/data-exploration/',
+  ],
+  modulePathIgnorePatterns: [
+    '<rootDir>/venv/',
+  ],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
       presets: [

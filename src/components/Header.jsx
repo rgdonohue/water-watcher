@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Header = () => {
+const Header = ({ currentPage, onPageChange }) => {
   const currentTime = new Date().toLocaleString('en-US', {
     timeZone: 'America/Denver',
     month: 'short',
@@ -20,9 +20,18 @@ const Header = () => {
           </div>
           
           <nav className="header-nav">
-            <a href="#monitoring" className="nav-link">Monitoring</a>
-            <a href="#data" className="nav-link">Data</a>
-            <a href="#about" className="nav-link">About</a>
+            <button 
+              className={`nav-link ${currentPage === 'map' ? 'active' : ''}`}
+              onClick={() => onPageChange('map')}
+            >
+              Map
+            </button>
+            <button 
+              className={`nav-link ${currentPage === 'about' ? 'active' : ''}`}
+              onClick={() => onPageChange('about')}
+            >
+              About
+            </button>
           </nav>
           
           <div className="header-status">
