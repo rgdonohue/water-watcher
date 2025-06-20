@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "export_date": "2025-06-20T12:43:58.950688",
+    "total_sites": 3,
+    "focus_area": "San Juan River Basin",
+    "bounds": {
+      "north": 37.5,
+      "south": 36.5,
+      "east": -107.5,
+      "west": -109.0
+    },
+    "data_source": "USGS National Water Information System"
+  },
+  "sites": [
+    {
+      "siteNo": "09368000",
+      "name": "SAN JUAN RIVER AT SHIPROCK, NM",
+      "latitude": 36.7856,
+      "longitude": -108.7267,
+      "state": "NM",
+      "county": "045",
+      "hucCode": "14080105",
+      "parameterCode": "00060",
+      "parameterName": "Streamflow (Discharge)",
+      "unit": "cfs",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09368000"
+    },
+    {
+      "siteNo": "09364500",
+      "name": "ANIMAS RIVER AT FARMINGTON, NM",
+      "latitude": 36.7281,
+      "longitude": -108.1842,
+      "state": "NM",
+      "county": "045",
+      "hucCode": "14080104",
+      "parameterCode": "00060",
+      "parameterName": "Streamflow (Discharge)",
+      "unit": "cfs",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09364500"
+    },
+    {
+      "siteNo": "09355500",
+      "name": "ANIMAS RIVER AT DURANGO, CO",
+      "latitude": 37.2756,
+      "longitude": -107.8803,
+      "state": "CO",
+      "county": "067",
+      "hucCode": "14080104",
+      "parameterCode": "00060",
+      "parameterName": "Streamflow (Discharge)",
+      "unit": "cfs",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09355500"
+    }
+  ]
+}
