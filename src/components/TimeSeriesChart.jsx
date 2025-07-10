@@ -68,54 +68,80 @@ const TimeSeriesChart = ({ data, width = 800, height = 400, title = "Recent Flow
       .y(d => yScale(d.flow))
       .curve(d3.curveMonotoneX);
 
-    // Add the line
+    // Add the line with better visibility
     g.append('path')
       .datum(formattedData)
       .attr('fill', 'none')
       .attr('stroke', '#2563eb')
-      .attr('stroke-width', 2)
-      .attr('d', line);
+      .attr('stroke-width', 3)
+      .attr('d', line)
+      .style('opacity', 0.9);
 
-    // Add circles for data points
-    g.selectAll('.dot')
-      .data(formattedData)
-      .enter().append('circle')
-      .attr('class', 'dot')
-      .attr('cx', d => xScale(d.parsedDate))
-      .attr('cy', d => yScale(d.flow))
-      .attr('r', 4)
-      .attr('fill', d => colorScale(d.condition))
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
-      .style('cursor', 'pointer')
-      .on('mouseover', function(event, d) {
-        d3.select(this).transition().duration(100).attr('r', 6);
+    // Add invisible overlay for hover interaction
+    g.append('rect')
+      .attr('width', innerWidth)
+      .attr('height', innerHeight)
+      .attr('fill', 'none')
+      .attr('pointer-events', 'all')
+      .on('mousemove', function(event) {
+        const [mouseX] = d3.pointer(event);
+        const xDate = xScale.invert(mouseX);
         
-        const formatTime = d3.timeFormat("%b %d, %I:%M %p");
-        setTooltip({
-          show: true,
-          x: event.pageX + 10,
-          y: event.pageY - 10,
-          content: `
-            <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px;">
-              <div><strong>${formatTime(d.parsedDate)}</strong></div>
-              <div>Flow: <strong>${d.flow} cfs</strong></div>
-              <div>Condition: <strong style="color: ${colorScale(d.condition)}">${d.condition}</strong></div>
-            </div>
-          `
-        });
+        // Find closest data point
+        const bisectDate = d3.bisector(d => d.parsedDate).left;
+        const i = bisectDate(formattedData, xDate, 1);
+        const d0 = formattedData[i - 1];
+        const d1 = formattedData[i];
+        const d = d1 && (xDate - d0.parsedDate > d1.parsedDate - xDate) ? d1 : d0;
+        
+        if (d) {
+          const formatTime = d3.timeFormat(formattedData.length > 100 ? "%b %d" : "%b %d, %I:%M %p");
+          setTooltip({
+            show: true,
+            x: event.pageX + 10,
+            y: event.pageY - 10,
+            content: `
+              <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px;">
+                <div><strong>${formatTime(d.parsedDate)}</strong></div>
+                <div>Flow: <strong>${d.flow.toLocaleString()} cfs</strong></div>
+                <div>Condition: <strong style="color: ${colorScale(d.condition)}">${d.condition}</strong></div>
+              </div>
+            `
+          });
+        }
       })
       .on('mouseout', function() {
-        d3.select(this).transition().duration(100).attr('r', 4);
         setTooltip({ show: false, x: 0, y: 0, content: '' });
       });
 
-    // Add X axis
+    // Add X axis with smart formatting based on data range
+    const timeRange = d3.extent(formattedData, d => d.parsedDate);
+    const daysDiff = (timeRange[1] - timeRange[0]) / (1000 * 60 * 60 * 24);
+    
+    let tickFormat, tickCount;
+    if (daysDiff > 60) {
+      // More than 60 days - show months
+      tickFormat = d3.timeFormat("%b %Y");
+      tickCount = 4;
+    } else if (daysDiff > 7) {
+      // More than 7 days - show dates
+      tickFormat = d3.timeFormat("%b %d");
+      tickCount = 6;
+    } else if (daysDiff > 1) {
+      // More than 1 day - show day and time
+      tickFormat = d3.timeFormat("%m/%d %I%p");
+      tickCount = 6;
+    } else {
+      // Less than 1 day - show time only
+      tickFormat = d3.timeFormat("%I:%M %p");
+      tickCount = 8;
+    }
+    
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale)
-        .tickFormat(d3.timeFormat("%I:%M %p"))
-        .ticks(6)
+        .tickFormat(tickFormat)
+        .ticks(tickCount)
       )
       .style('font-size', '12px');
 

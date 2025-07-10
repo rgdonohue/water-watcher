@@ -182,11 +182,11 @@ const ProportionalLegend = ({ siteConditions, sites }) => {
     maxFlow: 1000,
     midFlow: 500,
     minFlow: 100,
-    // Calculate proportional sizes using area-based scaling for fixed values
-    largeDiameter: 48,   // Size for 1000 cfs
-    mediumDiameter: 34,  // Size for 500 cfs (sqrt(500/1000) * 48 ≈ 34)
-    smallDiameter: 24,   // Size for 100 cfs (sqrt(100/1000) * 48 ≈ 24)
-    legendHeight: 68     // Height to fit largest circle + padding
+    // Calculate proportional sizes using area-based scaling for fixed values (2x larger)
+    largeDiameter: 96,   // Size for 1000 cfs (doubled from 48)
+    mediumDiameter: 68,  // Size for 500 cfs (doubled from 34) 
+    smallDiameter: 48,   // Size for 100 cfs (doubled from 24)
+    legendHeight: 136    // Height to fit largest circle + padding (doubled from 68)
   };
 
   const { maxFlow, midFlow, minFlow, largeDiameter, mediumDiameter, smallDiameter, legendHeight } = legendData;
@@ -317,33 +317,6 @@ const ProportionalLegend = ({ siteConditions, sites }) => {
           }}
         >
           {minFlow.toLocaleString()}
-        </div>
-
-        {/* Offline indicator */}
-        <div
-          className="prop-circle prop-offline"
-          style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: '#9ca3af',
-            borderRadius: '50%',
-            position: 'absolute',
-            left: `${largeDiameter + 30}px`,
-            bottom: 0
-          }}
-        />
-        <div
-          className="prop-label prop-label-offline"
-          style={{
-            position: 'absolute',
-            left: `${largeDiameter + 50}px`,
-            bottom: '-4px',
-            fontSize: '0.75rem',
-            color: '#6b7280',
-            fontWeight: '400'
-          }}
-        >
-          Offline
         </div>
       </div>
       
@@ -575,53 +548,6 @@ const WaterMap = ({
         </div>
         
         <div className="map-wrapper">
-          {/* Layer Controls - positioned in upper left of map */}
-          <div className="map-layer-controls">
-            <h4>Map Layers</h4>
-            <div className="layer-control-items">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="watershedToggle"
-                  checked={activeLayers.watershed}
-                  onChange={() => toggleLayer('watershed')}
-                />
-                <label className="form-check-label" htmlFor="watershedToggle">
-                  Watershed
-                </label>
-              </div>
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="markersToggle"
-                  checked={activeLayers.markers}
-                  onChange={() => toggleLayer('markers')}
-                />
-                <label className="form-check-label" htmlFor="markersToggle">
-                  Sites
-                </label>
-              </div>
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="waterQualityToggle"
-                  checked={activeLayers.waterQuality}
-                  onChange={() => toggleLayer('waterQuality')}
-                  disabled={layerLoading.waterQuality}
-                />
-                <label className="form-check-label" htmlFor="waterQualityToggle">
-                  Water Quality
-                  {layerLoading.waterQuality && (
-                    <span className="ms-2 spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
-          
           {/* Flow Volume Legend - positioned in lower left of map */}
           <ProportionalLegend siteConditions={siteConditions} sites={sites} />
           
