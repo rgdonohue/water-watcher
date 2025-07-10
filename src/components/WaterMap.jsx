@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from 'react-leaflet'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, ZoomControl } from 'react-leaflet'
 import { Icon, divIcon } from 'leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import { fetchMultipleSiteConditions, COLORADO_PLATEAU_BOUNDS } from '../services/usgsService'
+import WaterQualityLayer from './WaterQualityLayer';
+import DroughtLayer from './DroughtLayer';
 import watershedData from '../data/san-juan-watershed.json'
-// import 'leaflet/dist/leaflet.css' // Imported in index.css instead
+import ErrorBoundary from './ErrorBoundary'
+import './WaterMap.css'
 
 // Fix for default markers in React Leaflet
 delete Icon.Default.prototype._getIconUrl
@@ -12,6 +16,24 @@ Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 })
+
+// Create a loading marker
+const createLoadingMarker = () => {
+  return divIcon({
+    className: 'custom-div-icon loading-marker',
+    html: `<div style="
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #93c5fd;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      animation: pulse 1.5s infinite;
+    "></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  })
+}
 
 // Create proportional circle markers with sequential blue color scheme
 const createProportionalMarker = (status, currentFlow) => {
@@ -69,47 +91,117 @@ const createProportionalMarker = (status, currentFlow) => {
 }
 
 // Component to fit map bounds
-const MapBounds = ({ sites }) => {
+const MapBounds = ({ sites, fitOnLoad = true }) => {
   const map = useMap()
+  const initialFit = useRef(fitOnLoad)
   
   useEffect(() => {
-    if (sites.length > 0) {
+    if (sites.length > 0 && (initialFit.current || !fitOnLoad)) {
       const bounds = sites.map(site => [site.latitude, site.longitude])
       map.fitBounds(bounds, { padding: [20, 20] })
+      initialFit.current = false
     }
-  }, [sites, map])
+  }, [sites, map, fitOnLoad])
   
   return null
 }
 
-const WaterMap = ({ sites, selectedSite, onSiteSelect }) => {
+const WaterMap = ({ sites = [], selectedSite, onSiteSelect }) => {
   const [siteConditions, setSiteConditions] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [activeLayers, setActiveLayers] = useState({
+    watershed: true,
+    markers: true,
+    baseMap: true,
+    waterQuality: false,
+    drought: false
+  })
+  const [layerLoading, setLayerLoading] = useState({
+    watershed: false,
+    markers: false,
+    baseMap: false,
+    waterQuality: false,
+    drought: false
+  })
+  const [waterQualityFilters, setWaterQualityFilters] = useState([])
+  const [availableCharacteristics, setAvailableCharacteristics] = useState([])
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [mapBounds, setMapBounds] = useState(null)
   const mapRef = useRef(null)
+  const prevSitesRef = useRef([])
 
-  // Load site conditions on component mount
+  // Load site conditions when sites change
   useEffect(() => {
     const loadSiteConditions = async () => {
-      if (sites.length === 0) return
+      if (!sites.length) {
+        setLoading(false)
+        return
+      }
+
+      // Skip if sites haven't changed
+      const siteIds = sites.map(site => site.siteNo).sort()
+      const prevSiteIds = prevSitesRef.current.map(site => site.siteNo).sort()
       
+      if (JSON.stringify(siteIds) === JSON.stringify(prevSiteIds)) {
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setError(null)
-      
+      setLayerLoading(prev => ({ ...prev, markers: true }))
+      prevSitesRef.current = [...sites]
+
       try {
-        const siteNumbers = sites.map(site => site.siteNo)
-        const conditions = await fetchMultipleSiteConditions(siteNumbers)
+        const conditions = await fetchMultipleSiteConditions(siteIds)
         setSiteConditions(conditions)
       } catch (err) {
         setError(err.message)
         console.error('Error loading site conditions:', err)
       } finally {
         setLoading(false)
+        setLayerLoading(prev => ({ ...prev, markers: false }))
       }
     }
 
     loadSiteConditions()
   }, [sites])
+
+  // Toggle layer visibility
+  const toggleLayer = (layer) => {
+    // Only allow one data layer at a time
+    if (layer === 'waterQuality' || layer === 'drought') {
+      setActiveLayers(prev => ({
+        ...prev,
+        waterQuality: layer === 'waterQuality' ? !prev.waterQuality : false,
+        drought: layer === 'drought' ? !prev.drought : false
+      }));
+    } else {
+      setActiveLayers(prev => ({
+        ...prev,
+        [layer]: !prev[layer]
+      }));
+    }
+  };
+
+  // Handle map move end to update water quality data
+  const updateMapBounds = useCallback(() => {
+    if (mapRef.current) {
+      const bounds = mapRef.current.getBounds();
+      setMapBounds(bounds);
+    }
+  }, []);
+  
+  const handleMapLoad = useCallback((mapInstance) => {
+    mapRef.current = mapInstance;
+    updateMapBounds();
+    mapInstance.on('moveend', updateMapBounds);
+    
+    return () => {
+      mapInstance.off('moveend', updateMapBounds);
+    };
+  }, [updateMapBounds]);
 
   // Center map on Colorado Plateau region
   const mapCenter = [
@@ -117,10 +209,128 @@ const WaterMap = ({ sites, selectedSite, onSiteSelect }) => {
     (COLORADO_PLATEAU_BOUNDS.east + COLORADO_PLATEAU_BOUNDS.west) / 2
   ]
 
+  // Handle water quality data load
+  const handleWaterQualityDataLoad = useCallback((data) => {
+    console.log(`Loaded ${data.length} water quality monitoring stations`);
+    setLayerLoading(prev => ({ ...prev, waterQuality: false }));
+    
+    // Extract unique characteristics from the data
+    const characteristics = new Set();
+    data.forEach(location => {
+      Object.keys(location.characteristics).forEach(char => {
+        characteristics.add(char);
+      });
+    });
+    
+    setAvailableCharacteristics(prev => {
+      // Only update if we have new characteristics
+      if (prev.length !== characteristics.size) {
+        return Array.from(characteristics).sort();
+      }
+      return prev;
+    });
+  }, []);
+  
+  // Handle drought data load
+  const handleDroughtDataLoad = useCallback((data) => {
+    console.log('Loaded drought data:', data);
+    setLayerLoading(prev => ({ ...prev, drought: false }));
+  }, []);
+  
+  const handleDroughtError = useCallback((error) => {
+    console.error('Drought data error:', error);
+    setLayerLoading(prev => ({ ...prev, drought: false }));
+  }, []);
+  
+  const handleWaterQualityError = useCallback((error) => {
+    console.error('Water quality data error:', error);
+    setLayerLoading(prev => ({ ...prev, waterQuality: false }));
+  }, []);
+  
+  // Toggle water quality characteristic filter
+  const toggleCharacteristicFilter = useCallback((characteristic) => {
+    setWaterQualityFilters(prev => {
+      if (prev.includes(characteristic)) {
+        return prev.filter(c => c !== characteristic);
+      } else {
+        return [...prev, characteristic];
+      }
+    });
+  }, []);
+
+  // Create markers for each site
+  const markers = useMemo(() => {
+    if (!activeLayers.markers) return null;
+    
+    return sites.map(site => {
+      const conditions = siteConditions[site.siteNo] || {}
+      const { status = 'offline', currentFlow = null } = conditions
+      
+      return (
+        <Marker
+          key={site.siteNo}
+          position={[site.latitude, site.longitude]}
+          icon={loading || layerLoading.markers ? createLoadingMarker() : createProportionalMarker(status, currentFlow)}
+          eventHandlers={{
+            click: () => onSiteSelect && onSiteSelect(site)
+          }}
+        >
+          <Popup>
+            <div className="site-popup">
+              <h4>{site.name}</h4>
+              <div className="site-details">
+                <div className="info-row">
+                  <span className="label">Status:</span>
+                  <span className={`value status-${status}`}>
+                    {status === 'online' ? 'Live Data' : 'Offline'}
+                  </span>
+                </div>
+                {status === 'online' && (
+                  <>
+                    <div className="info-row">
+                      <span className="label">Flow:</span>
+                      <span className="value">
+                        {currentFlow !== null ? `${currentFlow} cfs` : 'N/A'}
+                      </span>
+                    </div>
+                    {conditions.lastUpdate && (
+                      <div className="info-row">
+                        <span className="label">Last Update:</span>
+                        <span className="value">
+                          {new Date(conditions.lastUpdate).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="popup-actions">
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => onSiteSelect && onSiteSelect(site)}
+                >
+                  View Chart
+                </button>
+                <a 
+                  href={site.usgsUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm"
+                >
+                  USGS Data
+                </a>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      )
+    })
+  }, [sites, siteConditions, loading, layerLoading.markers, activeLayers.markers, onSiteSelect])
+
   if (loading) {
     return (
       <div className="water-map-loading">
-        <div className="loading-spinner"></div>
+        <div className="loading-spinner" />
         <p>Loading monitoring sites...</p>
       </div>
     )
@@ -132,8 +342,8 @@ const WaterMap = ({ sites, selectedSite, onSiteSelect }) => {
         <h3>Unable to load map data</h3>
         <p>{error}</p>
         <button 
+          className="btn btn-primary" 
           onClick={() => window.location.reload()}
-          className="btn btn-primary"
         >
           Retry
         </button>
@@ -142,175 +352,287 @@ const WaterMap = ({ sites, selectedSite, onSiteSelect }) => {
   }
 
   return (
-    <div className="water-map-container">
-      <div className="map-header">
-        <h3>Interactive Water Monitoring Map</h3>
-        <p>Click on a marker to view detailed streamflow data</p>
-        <div className="map-legend">
-          <div className="legend-title">Flow Volume (cfs)</div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-large" style={{ backgroundColor: '#0277bd' }}></div>
-            <span>Very High (&gt;2000)</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-medium" style={{ backgroundColor: '#0288d1' }}></div>
-            <span>High (1000-2000)</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-medium" style={{ backgroundColor: '#03a9f4' }}></div>
-            <span>Medium (500-1000)</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-small" style={{ backgroundColor: '#4fc3f7' }}></div>
-            <span>Low (100-500)</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-small" style={{ backgroundColor: '#81d4fa' }}></div>
-            <span>Very Low (50-100)</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-small" style={{ backgroundColor: '#b3e5fc' }}></div>
-            <span>Minimal (&lt;50)</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker proportional-small" style={{ backgroundColor: '#9ca3af' }}></div>
-            <span>Offline</span>
-          </div>
-          <div className="legend-note">
-            <small>*Symbol size proportional to flow volume</small>
-          </div>
-        </div>
-      </div>
-      
-      <div className="map-wrapper">
-        <MapContainer
-          center={mapCenter}
-          zoom={8}
-          className="water-map"
-          zoomControl={true}
-          scrollWheelZoom={true}
-          ref={mapRef}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+    <ErrorBoundary onRetry={() => window.location.reload()}>
+      <div className="water-map-container">
+        <div className="map-header">
+          <h3>Interactive Water Monitoring Map</h3>
+          <p>Click on a marker to view detailed streamflow data</p>
           
-          {/* Watershed boundaries */}
-          <GeoJSON 
-            data={watershedData} 
-            style={{
-              fillColor: '#e3f2fd',
-              weight: 2,
-              opacity: 0.8,
-              color: '#1976d2',
-              dashArray: '5, 5',
-              fillOpacity: 0.1
-            }}
-            onEachFeature={(feature, layer) => {
-              layer.bindPopup(`
-                <div class="watershed-popup">
-                  <h4>${feature.properties.name}</h4>
-                  <p><strong>HUC:</strong> ${feature.properties.huc}</p>
-                  <p><strong>Area:</strong> ${feature.properties.area_sqkm.toLocaleString()} km²</p>
-                  <p>${feature.properties.description}</p>
-                </div>
-              `)
-            }}
-          />
-          
-          {/* Fit bounds to show all sites */}
-          <MapBounds sites={sites} />
-          
-          {/* Site markers */}
-          {sites.map((site) => {
-            const condition = siteConditions[site.siteNo] || { status: 'loading', currentFlow: null }
-            const isSelected = selectedSite?.siteNo === site.siteNo
-            
-            return (
-              <Marker
-                key={site.siteNo}
-                position={[site.latitude, site.longitude]}
-                icon={createProportionalMarker(condition.status, condition.currentFlow)}
-                eventHandlers={{
-                  click: () => {
-                    onSiteSelect(site)
+          {/* Layer Controls */}
+          <div className="layer-controls">
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="baseMapToggle"
+                checked={activeLayers.baseMap}
+                onChange={() => toggleLayer('baseMap')}
+              />
+              <label className="form-check-label" htmlFor="baseMapToggle">
+                Base Map
+              </label>
+            </div>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="watershedToggle"
+                checked={activeLayers.watershed}
+                onChange={() => toggleLayer('watershed')}
+              />
+              <label className="form-check-label" htmlFor="watershedToggle">
+                Watershed Boundaries
+              </label>
+            </div>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="markersToggle"
+                checked={activeLayers.markers}
+                onChange={() => toggleLayer('markers')}
+              />
+              <label className="form-check-label" htmlFor="markersToggle">
+                Monitoring Sites
+              </label>
+            </div>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="waterQualityToggle"
+                checked={activeLayers.waterQuality}
+                onChange={() => {
+                  setActiveLayers(prev => ({
+                    ...prev,
+                    waterQuality: !prev.waterQuality
+                  }));
+                  if (!activeLayers.waterQuality) {
+                    setLayerLoading(prev => ({ ...prev, waterQuality: true }));
                   }
                 }}
-              >
-                <Popup>
-                  <div className="map-popup">
-                    <h4>{site.name}</h4>
-                    <div className="popup-info">
-                      <div className="info-row">
-                        <span className="label">Site ID:</span>
-                        <span className="value">{site.siteNo}</span>
+                disabled={layerLoading.waterQuality}
+              />
+              <label className="form-check-label" htmlFor="waterQualityToggle">
+                Water Quality Data
+                {layerLoading.waterQuality && (
+                  <span className="ms-2 spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                )}
+              </label>
+            </div>
+          </div>
+          
+          {/* Legend */}
+          <div className="map-legend">
+            <div className="legend-title">Flow Volume (cfs)</div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-large" style={{ backgroundColor: '#0277bd' }} />
+              <span>Very High (&gt;2000)</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-medium" style={{ backgroundColor: '#0288d1' }} />
+              <span>High (1000-2000)</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-medium" style={{ backgroundColor: '#03a9f4' }} />
+              <span>Medium (500-1000)</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-small" style={{ backgroundColor: '#29b6f6' }} />
+              <span>Low (100-500)</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-small" style={{ backgroundColor: '#4fc3f7' }} />
+              <span>Very Low (50-100)</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-small" style={{ backgroundColor: '#81d4fa' }} />
+              <span>Minimal (&lt;50)</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-marker proportional-small" style={{ backgroundColor: '#9ca3af' }} />
+              <span>Offline</span>
+            </div>
+            <div className="legend-note">
+              <small>*Symbol size proportional to flow volume</small>
+            </div>
+            
+            {/* Water Quality Legend */}
+            <div className="water-quality-legend">
+              <h4>Water Quality Status</h4>
+              <div className="legend-item">
+                <span className="legend-color status-good"></span>
+                <span>Good</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-color status-fair"></span>
+                <span>Fair</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-color status-poor"></span>
+                <span>Poor</span>
+              </div>
+              
+              {activeLayers.waterQuality && availableCharacteristics.length > 0 && (
+                <div className="characteristic-filters">
+                  <h5>Filter by Parameter:</h5>
+                  <div className="filter-options">
+                    {availableCharacteristics.map(char => (
+                      <div key={char} className="form-check form-check-inline">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`filter-${char}`}
+                          checked={waterQualityFilters.includes(char)}
+                          onChange={() => toggleCharacteristicFilter(char)}
+                        />
+                        <label className="form-check-label" htmlFor={`filter-${char}`}>
+                          {char}
+                        </label>
                       </div>
-                      <div className="info-row">
-                        <span className="label">Location:</span>
-                        <span className="value">{site.state}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Coordinates:</span>
-                        <span className="value">
-                          {site.latitude.toFixed(4)}°, {site.longitude.toFixed(4)}°
-                        </span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Status:</span>
-                        <span className={`value status-${condition.status}`}>
-                          {condition.status === 'online' ? 'Live Data' : 'Offline'}
-                        </span>
-                      </div>
-                      {condition.currentFlow && (
-                        <div className="info-row">
-                          <span className="label">Current Flow:</span>
-                          <span className="value">
-                            {condition.currentFlow.toLocaleString()} cfs
-                          </span>
-                        </div>
-                      )}
-                      {condition.lastUpdate && (
-                        <div className="info-row">
-                          <span className="label">Last Update:</span>
-                          <span className="value">
-                            {new Date(condition.lastUpdate).toLocaleTimeString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="popup-actions">
-                      <button 
-                        className="btn btn-primary btn-sm"
-                        onClick={() => onSiteSelect(site)}
-                      >
-                        View Chart
-                      </button>
-                      <a 
-                        href={site.usgsUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        USGS Data
-                      </a>
-                    </div>
+                    ))}
                   </div>
-                </Popup>
-              </Marker>
-            )
-          })}
-        </MapContainer>
-      </div>
-      
-      {selectedSite && (
-        <div className="selected-site-info">
-          <h4>Selected Site: {selectedSite.name}</h4>
-          <p>Viewing streamflow data below the map</p>
+                  {waterQualityFilters.length > 0 && (
+                    <button 
+                      className="btn btn-sm btn-link p-0 mt-1"
+                      onClick={() => setWaterQualityFilters([])}
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
-    </div>
+        
+        <div className="map-wrapper">
+          <MapContainer
+            center={mapCenter}
+            zoom={8}
+            zoomControl={false}
+            className="water-map"
+            style={{ height: '600px', width: '100%' }}
+            scrollWheelZoom={true}
+            attributionControl={false}
+            whenCreated={handleMapLoad}
+          >
+            {/* Custom zoom control */}
+            <ZoomControl position="topright" />
+            
+            {/* Custom attribution */}
+            <div className="leaflet-bottom leaflet-right">
+              <div className="leaflet-control-attribution leaflet-control">
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
+                  © OpenStreetMap contributors
+                </a>
+                {' | '}
+                <a href="https://waterdata.usgs.gov/nwis" target="_blank" rel="noopener noreferrer">
+                  USGS Water Data
+                </a>
+                {' | '}
+                <a href="https://www.epa.gov/waterdata/water-quality-data" target="_blank" rel="noopener noreferrer">
+                  EPA Water Quality
+                </a>
+              </div>
+            </div>
+            
+            {activeLayers.baseMap && (
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                detectRetina={true}
+                maxZoom={19}
+                minZoom={5}
+              />
+            )}
+            
+            {activeLayers.watershed && (
+              <GeoJSON 
+                data={watershedData}
+                style={{
+                  fillColor: '#e3f2fd',
+                  weight: 2,
+                  opacity: 0.8,
+                  color: '#1976d2',
+                  dashArray: '5, 5',
+                  fillOpacity: 0.1
+                }}
+                onEachFeature={(feature, layer) => {
+                  layer.bindPopup(`
+                    <div class="watershed-popup">
+                      <h4>${feature.properties.name || 'Watershed'}</h4>
+                      <p><strong>Area:</strong> ${(feature.properties.area_sqkm || 0).toLocaleString()} km²</p>
+                    </div>
+                  `)
+                }}
+              />
+            )}
+            
+            {activeLayers.markers && (
+              <MarkerClusterGroup
+                chunkedLoading
+                chunkInterval={100}
+                spiderfyOnMaxZoom={true}
+                showCoverageOnHover={false}
+                zoomToBoundsOnClick={true}
+                maxClusterRadius={60}
+                iconCreateFunction={(cluster) => {
+                  const count = cluster.getChildCount();
+                  let size = 'small';
+                  if (count > 50) size = 'large';
+                  else if (count > 20) size = 'medium';
+                  
+                  return divIcon({
+                    html: `<div class="cluster-marker cluster-${size}">${count}</div>`,
+                    className: 'custom-cluster',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                  });
+                }}
+              >
+                {markers}
+              </MarkerClusterGroup>
+            )}
+            
+            {/* Water Quality Layer */}
+            {activeLayers.waterQuality && (
+              <WaterQualityLayer
+                bounds={mapBounds}
+                visible={activeLayers.waterQuality}
+                onDataLoad={handleWaterQualityDataLoad}
+                onError={handleWaterQualityError}
+                selectedCharacteristics={waterQualityFilters}
+              />
+              
+              <DroughtLayer
+                bounds={mapBounds}
+                visible={activeLayers.drought}
+                onDataLoad={handleDroughtDataLoad}
+                onError={handleDroughtError}
+              />
+            )}
+            
+            <MapBounds sites={sites} fitOnLoad={true} />
+            
+          </MapContainer>
+        </div>
+        
+        {selectedSite && (
+          <div className="selected-site-info">
+            <h4>Selected Site: {selectedSite.name}</h4>
+            <p>Viewing streamflow data below the map</p>
+          </div>
+        )}
+      </div>
+    </ErrorBoundary>
   )
 }
 
-export default WaterMap 
+// Set default props
+WaterMap.defaultProps = {
+  sites: [],
+  selectedSite: null,
+  onSiteSelect: null
+}
+
+export default React.memo(WaterMap) 
