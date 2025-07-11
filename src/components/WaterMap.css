@@ -134,6 +134,74 @@
   border: none !important;
 }
 
+/* Enhanced Typography for Station Labels */
+.custom-div-icon {
+  position: relative;
+  z-index: 1000;
+}
+
+.flow-marker {
+  position: relative;
+  z-index: 1000;
+}
+
+.flow-marker::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+/* River Popup Styles */
+.river-popup {
+  min-width: 200px;
+  padding: 0.75rem;
+}
+
+.river-popup h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.stream-info p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.stream-info strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Enhanced Watershed Popup */
+.watershed-popup {
+  min-width: 180px;
+  padding: 0.75rem;
+}
+
+.watershed-popup h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.watershed-popup p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
 /* Water Quality Popup */
 .water-quality-popup {
   min-width: 220px;
@@ -412,6 +480,65 @@
   font-size: 0.65rem;
 }
 
+/* Rivers legend positioned in upper right of map */
+.map-rivers-legend {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  min-width: 160px;
+  max-width: 200px;
+}
+
+.map-rivers-legend h4 {
+  margin: 0 0 0.75rem 0;
+  color: #1f2937;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-bottom: 2px solid #4a90a4;
+  padding-bottom: 0.25rem;
+}
+
+.map-rivers-legend .legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  color: #374151;
+}
+
+.river-line {
+  width: 24px;
+  height: 2px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+.river-line.major-river {
+  background-color: #4a90a4;
+  opacity: 0.6;
+  height: 2px;
+}
+
+.river-line.secondary-stream {
+  background-color: #6ba3b5;
+  opacity: 0.4;
+  height: 1px;
+}
+
+.river-line.minor-tributary {
+  background-color: #8cb6c6;
+  opacity: 0.25;
+  height: 0.5px;
+}
+
 /* Water quality legend positioned in lower right of map */
 .map-water-quality-legend {
   position: absolute;
@@ -426,6 +553,12 @@
   border: 1px solid rgba(255, 255, 255, 0.8);
   min-width: 160px;
   max-width: 200px;
+}
+
+/* Adjust water quality legend position when rivers legend is visible */
+.map-rivers-legend + .map-water-quality-legend {
+  bottom: 10px;
+  right: 180px;
 }
 
 .map-water-quality-legend h4 {
@@ -991,6 +1124,111 @@
 .period-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Comparison controls */
+.comparison-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.comparison-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.comparison-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.875rem;
+  min-width: 300px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comparison-select:hover {
+  border-color: #9ca3af;
+}
+
+.comparison-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.comparison-select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.comparison-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Data Quality Alert */
+.data-quality-alert {
+  margin: 1rem 1.5rem;
+  padding: 1rem;
+  background: #fef3cd;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  border-left: 4px solid #f59e0b;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.alert-icon {
+  font-size: 1.25rem;
+}
+
+.alert-title {
+  font-weight: 600;
+  color: #92400e;
+  font-size: 0.875rem;
+}
+
+.alert-content {
+  font-size: 0.8rem;
+  color: #78350f;
+}
+
+.anomaly-summary {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.anomaly-note {
+  margin-top: 0.75rem;
+  font-style: italic;
+  color: #a16207;
+  font-size: 0.75rem;
 }
 
 .modal-chart-section {

@@ -4,6 +4,7 @@ import { Icon, divIcon } from 'leaflet'
 import { fetchMultipleSiteConditions, COLORADO_PLATEAU_BOUNDS } from '../services/usgsService'
 import WaterQualityLayer from './WaterQualityLayer';
 import DroughtLayer from './DroughtLayer';
+import RiversLayer from './RiversLayer';
 import GaugeModal from './GaugeModal';
 import watershedData from '../data/san-juan-watershed.json'
 import ErrorBoundary from './ErrorBoundary'
@@ -35,7 +36,7 @@ const createLoadingMarker = () => {
   })
 }
 
-// Create proportional circle markers with sequential blue color scheme
+// Create proportional circle markers with enhanced visual hierarchy styling
 const createProportionalMarker = (status, flow) => {
   if (status === 'offline' || flow === null || flow === undefined) {
     return divIcon({
@@ -45,31 +46,35 @@ const createProportionalMarker = (status, flow) => {
         height: 24px;
         border-radius: 50%;
         background-color: #9ca3af;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        border: 3px solid white;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.2);
       "></div>`,
       iconSize: [24, 24],
       iconAnchor: [12, 12]
     })
   }
 
-  // Simplified 3-tier flow classification with larger symbols
-  let size, color, category
+  // Enhanced 3-tier flow classification with improved visual hierarchy
+  let size, color, category, textColor
   
   if (flow >= 1000) {
-    // High flow (>=1000 cfs) - Largest symbol: 96px (3x increase from 32px)
+    // High flow (>=1000 cfs) - Largest symbol: 96px with enhanced contrast
     size = 96
     color = '#1565c0' // Dark blue
     category = 'high'
+    textColor = 'white'
   } else if (flow >= 200) {
     // Medium flow (200-999 cfs) - Medium symbol: 60px
     size = 60
     color = '#1976d2' // Medium blue  
     category = 'medium'
+    textColor = 'white'
   } else {
     // Low flow (<200 cfs) - Small symbol: 36px
     size = 36
     color = '#42a5f5' // Light blue
     category = 'low'
+    textColor = 'white'
   }
 
   return divIcon({
@@ -79,13 +84,17 @@ const createProportionalMarker = (status, flow) => {
       height: ${size}px;
       border-radius: 50%;
       background-color: ${color};
-      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      border: 3px solid white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: ${textColor};
       font-weight: bold;
       font-size: ${Math.max(10, size * 0.15)}px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 1000;
     ">${flow >= 1000 ? Math.round(flow/1000) + 'k' : Math.round(flow)}</div>`,
     iconSize: [size, size],
     iconAnchor: [size/2, size/2]
@@ -96,6 +105,7 @@ const createProportionalMarker = (status, flow) => {
 const MapBounds = ({ watershedData, sites = [], fitOnLoad = true }) => {
   const map = useMap()
   const initialFit = useRef(fitOnLoad)
+  const boundsSet = useRef(false)
   
   // Function to calculate bounds from GeoJSON coordinates
   const calculateBoundsFromGeoJSON = (geoJsonData) => {
@@ -143,8 +153,23 @@ const MapBounds = ({ watershedData, sites = [], fitOnLoad = true }) => {
     return { minLat, maxLat, minLng, maxLng };
   };
   
+  // Function to add padding to bounds
+  const addBoundsPadding = (bounds, paddingFactor = 0.3) => {
+    if (!bounds) return null;
+    
+    const latRange = bounds.maxLat - bounds.minLat;
+    const lngRange = bounds.maxLng - bounds.minLng;
+    
+    return {
+      minLat: bounds.minLat - (latRange * paddingFactor),
+      maxLat: bounds.maxLat + (latRange * paddingFactor),
+      minLng: bounds.minLng - (lngRange * paddingFactor),
+      maxLng: bounds.maxLng + (lngRange * paddingFactor)
+    };
+  };
+
   useEffect(() => {
-    if ((watershedData || sites.length > 0) && (initialFit.current || !fitOnLoad)) {
+    if ((watershedData || sites.length > 0) && !boundsSet.current) {
       let combinedBounds = null;
       
       // Get watershed bounds
@@ -155,18 +180,77 @@ const MapBounds = ({ watershedData, sites = [], fitOnLoad = true }) => {
       
       // Combine bounds to include both watershed and sites
       if (watershedBounds && sitesBounds) {
-        combinedBounds = [
-          [Math.min(watershedBounds.minLat, sitesBounds.minLat), Math.min(watershedBounds.minLng, sitesBounds.minLng)],
-          [Math.max(watershedBounds.maxLat, sitesBounds.maxLat), Math.max(watershedBounds.maxLng, sitesBounds.maxLng)]
-        ];
+        combinedBounds = {
+          minLat: Math.min(watershedBounds.minLat, sitesBounds.minLat),
+          maxLat: Math.max(watershedBounds.maxLat, sitesBounds.maxLat),
+          minLng: Math.min(watershedBounds.minLng, sitesBounds.minLng),
+          maxLng: Math.max(watershedBounds.maxLng, sitesBounds.maxLng)
+        };
       } else if (watershedBounds) {
-        combinedBounds = [[watershedBounds.minLat, watershedBounds.minLng], [watershedBounds.maxLat, watershedBounds.maxLng]];
+        combinedBounds = watershedBounds;
       } else if (sitesBounds) {
-        combinedBounds = [[sitesBounds.minLat, sitesBounds.minLng], [sitesBounds.maxLat, sitesBounds.maxLng]];
+        combinedBounds = sitesBounds;
       }
       
       if (combinedBounds) {
-        map.fitBounds(combinedBounds, { padding: [50, 50] });
+        // Create leaflet bounds for fitting
+        const fitBounds = [
+          [combinedBounds.minLat, combinedBounds.minLng], 
+          [combinedBounds.maxLat, combinedBounds.maxLng]
+        ];
+        
+        // Set initial view and get the zoom level
+        map.fitBounds(fitBounds, { padding: [50, 50] });
+        const currentZoom = map.getZoom();
+        
+        // Set minZoom to 2 levels out from the full extent
+        const minZoom = Math.max(1, currentZoom - 2);
+        map.setMinZoom(minZoom);
+        
+        // Create maxBounds with generous padding to prevent panning too far
+        const paddedBounds = addBoundsPadding(combinedBounds, 0.5);
+        if (paddedBounds) {
+          const maxBounds = [
+            [paddedBounds.minLat, paddedBounds.minLng],
+            [paddedBounds.maxLat, paddedBounds.maxLng]
+          ];
+          map.setMaxBounds(maxBounds);
+        }
+        
+                 // Add gentle bounce-back behavior for when user pans too far
+         let bounceTimeout;
+         map.on('dragend', () => {
+           if (paddedBounds) {
+             const center = map.getCenter();
+             const viewBounds = map.getBounds();
+             
+             // Check if the current view has moved significantly away from the data
+             const isOutsideDataArea = (
+               center.lat < combinedBounds.minLat - (combinedBounds.maxLat - combinedBounds.minLat) * 0.2 ||
+               center.lat > combinedBounds.maxLat + (combinedBounds.maxLat - combinedBounds.minLat) * 0.2 ||
+               center.lng < combinedBounds.minLng - (combinedBounds.maxLng - combinedBounds.minLng) * 0.2 ||
+               center.lng > combinedBounds.maxLng + (combinedBounds.maxLng - combinedBounds.minLng) * 0.2
+             );
+             
+             if (isOutsideDataArea) {
+               // Clear any previous bounce timeout
+               clearTimeout(bounceTimeout);
+               
+               // Gently fly back to keep the data in view
+               bounceTimeout = setTimeout(() => {
+                 const dataCenterLat = (combinedBounds.minLat + combinedBounds.maxLat) / 2;
+                 const dataCenterLng = (combinedBounds.minLng + combinedBounds.maxLng) / 2;
+                 
+                 map.flyTo([dataCenterLat, dataCenterLng], map.getZoom(), {
+                   duration: 1.2,
+                   easeLinearity: 0.2
+                 });
+               }, 500);
+             }
+           }
+         });
+        
+        boundsSet.current = true;
         initialFit.current = false;
       }
     }
@@ -337,6 +421,7 @@ const WaterMap = ({
   // Default active layers
   initialActiveLayers = {
     watershed: true,
+    rivers: true,
     markers: true,
     waterQuality: false,
     drought: false
@@ -351,6 +436,7 @@ const WaterMap = ({
   const [activeLayers, setActiveLayers] = useState(initialActiveLayers)
   const [layerLoading, setLayerLoading] = useState({
     watershed: false,
+    rivers: false,
     markers: false,
     waterQuality: false,
     drought: false
@@ -525,7 +611,56 @@ const WaterMap = ({
           eventHandlers={{
             click: () => handleGaugeClick(site)
           }}
-        />
+        >
+          <Popup>
+            <div className="site-popup">
+              <h4>{site.name}</h4>
+              <div className="site-details">
+                <div className="info-row">
+                  <span className="label">Site ID:</span>
+                  <span className="value">{site.siteNo}</span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Status:</span>
+                  <span className={`value status-${status}`}>
+                    {status === 'online' ? 'Live Data' : 'Offline'}
+                  </span>
+                </div>
+                {status === 'online' && currentFlow && (
+                  <div className="info-row">
+                    <span className="label">Current Flow:</span>
+                    <span className="value">
+                      {currentFlow.toLocaleString()} cfs
+                    </span>
+                  </div>
+                )}
+                <div className="info-row">
+                  <span className="label">Location:</span>
+                  <span className="value">
+                    {site.state} • {site.county}
+                  </span>
+                </div>
+              </div>
+              <div className="popup-actions">
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleGaugeClick(site)}
+                >
+                  View Details
+                </button>
+                <a 
+                  href={site.usgsUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  USGS Data
+                </a>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
       )
     })
   }, [sites, siteConditions, loading, layerLoading.markers, activeLayers.markers, handleGaugeClick])
@@ -548,55 +683,96 @@ const WaterMap = ({
         </div>
         
         <div className="map-wrapper">
+          {/* Layer Controls - positioned in upper left of map */}
+          <div className="map-layer-controls">
+            <h4>Map Layers</h4>
+            <div className="layer-control-items">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="watershedToggle"
+                  checked={activeLayers.watershed}
+                  onChange={() => toggleLayer('watershed')}
+                />
+                <label className="form-check-label" htmlFor="watershedToggle">
+                  Watershed
+                </label>
+              </div>
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="riversToggle"
+                  checked={activeLayers.rivers}
+                  onChange={() => toggleLayer('rivers')}
+                />
+                <label className="form-check-label" htmlFor="riversToggle">
+                  Rivers
+                </label>
+              </div>
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="markersToggle"
+                  checked={activeLayers.markers}
+                  onChange={() => toggleLayer('markers')}
+                />
+                <label className="form-check-label" htmlFor="markersToggle">
+                  Gauges
+                </label>
+              </div>
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="waterQualityToggle"
+                  checked={activeLayers.waterQuality}
+                  onChange={() => toggleLayer('waterQuality')}
+                />
+                <label className="form-check-label" htmlFor="waterQualityToggle">
+                  Water Quality
+                </label>
+              </div>
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="droughtToggle"
+                  checked={activeLayers.drought}
+                  onChange={() => toggleLayer('drought')}
+                />
+                <label className="form-check-label" htmlFor="droughtToggle">
+                  Drought
+                </label>
+              </div>
+            </div>
+          </div>
+          
           {/* Flow Volume Legend - positioned in lower left of map */}
           <ProportionalLegend siteConditions={siteConditions} sites={sites} />
           
-          {/* Water Quality Legend - positioned in lower right of map */}
-          <div className="map-water-quality-legend">
-            <h4>Water Quality Status</h4>
-            <div className="legend-item">
-              <span className="legend-color status-good"></span>
-              <span>Good</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-color status-fair"></span>
-              <span>Fair</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-color status-poor"></span>
-              <span>Poor</span>
-            </div>
-            
-            {activeLayers.waterQuality && availableCharacteristics.length > 0 && (
-              <div className="characteristic-filters">
-                <h5>Filter by Parameter:</h5>
-                <div className="filter-options">
-                  {availableCharacteristics.slice(0, 6).map(char => (
-                    <div key={char} className="form-check form-check-inline">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id={`filter-${char}`}
-                        checked={waterQualityFilters.includes(char)}
-                        onChange={() => toggleCharacteristicFilter(char)}
-                      />
-                      <label className="form-check-label" htmlFor={`filter-${char}`}>
-                        {char}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                {waterQualityFilters.length > 0 && (
-                  <button 
-                    className="btn btn-sm btn-link p-0 mt-1"
-                    onClick={() => setWaterQualityFilters([])}
-                  >
-                    Clear filters
-                  </button>
-                )}
+          {/* Rivers Legend - positioned in upper right of map */}
+          {activeLayers.rivers && (
+            <div className="map-rivers-legend">
+              <h4>Rivers & Streams</h4>
+              <div className="legend-item">
+                <div className="river-line major-river"></div>
+                <span>Major Rivers</span>
               </div>
-            )}
-          </div>
+              <div className="legend-item">
+                <div className="river-line secondary-stream"></div>
+                <span>Secondary Streams</span>
+              </div>
+              <div className="legend-item">
+                <div className="river-line minor-tributary"></div>
+                <span>Minor Tributaries</span>
+              </div>
+            </div>
+          )}
+          
+
 
           <MapContainer
             center={mapCenter}
@@ -607,6 +783,7 @@ const WaterMap = ({
             scrollWheelZoom={true}
             attributionControl={false}
             whenCreated={handleMapLoad}
+            bounceAtZoomLimits={true}
           >
             {/* Custom zoom control */}
             <ZoomControl position="topright" />
@@ -615,7 +792,11 @@ const WaterMap = ({
             <div className="leaflet-bottom leaflet-right">
               <div className="leaflet-control-attribution leaflet-control">
                 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
-                  &copy; OpenStreetMap contributors
+                  &copy; OpenStreetMap
+                </a>
+                {' | '}
+                <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">
+                  &copy; CARTO
                 </a>
                 {' | '}
                 <a href="https://waterdata.usgs.gov/nwis" target="_blank" rel="noopener noreferrer">
@@ -629,21 +810,21 @@ const WaterMap = ({
             </div>
             
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               detectRetina={true}
               maxZoom={19}
-              minZoom={5}
             />
             
             {activeLayers.watershed && (
               <GeoJSON 
                 data={watershedData}
                 style={{
-                  fillColor: '#1976d2',
-                  weight: 1.5,
-                  opacity: 0.8,
-                  color: '#1565c0',
-                  fillOpacity: 0.4,
+                  fillColor: '#e8f1f5',
+                  weight: 0.5,
+                  opacity: 0.3,
+                  color: '#2c5f6f',
+                  fillOpacity: 0.2,
                   lineCap: 'round',
                   lineJoin: 'round',
                   smoothFactor: 2.0
@@ -655,6 +836,22 @@ const WaterMap = ({
                       <p><strong>Area:</strong> ${(feature.properties.area_sqkm || 0).toLocaleString()} km&sup2;</p>
                     </div>
                   `)
+                }}
+              />
+            )}
+            
+            {/* Rivers Layer */}
+            {activeLayers.rivers && (
+              <RiversLayer
+                bounds={mapBounds && mapBounds._southWest && mapBounds._northEast ? mapBounds : null}
+                visible={activeLayers.rivers}
+                onDataLoad={(data) => {
+                  console.log(`Loaded ${data.features?.length || 0} river features`);
+                  setLayerLoading(prev => ({ ...prev, rivers: false }));
+                }}
+                onError={(error) => {
+                  console.error('Rivers data error:', error);
+                  setLayerLoading(prev => ({ ...prev, rivers: false }));
                 }}
               />
             )}
@@ -698,6 +895,7 @@ const WaterMap = ({
           onClose={handleModalClose}
           siteData={selectedSiteData}
           siteCondition={selectedSiteData ? siteConditions[selectedSiteData.siteNo] : null}
+          allSites={sites}
         />
       </div>
     </ErrorBoundary>

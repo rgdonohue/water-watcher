@@ -19,7 +19,7 @@ const createWaterQualityIcon = (status) => {
       height: 16px;
       border-radius: 50%;
       background-color: ${color};
-      border: 2px solid white;
+      border: 2px solid rgba(255, 255, 255, 0.4);
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     "></div>`,
     iconSize: [16, 16],
