@@ -2,6 +2,8 @@
 
 A lightweight, web-based map application that visualizes freshwater health indicators across the Colorado Plateau (CO, NM, AZ, UT). This tool democratizes access to water health data by providing an intuitive interface for exploring water quality metrics, streamflow data, and drought conditions.
 
+![map](images/map.png)
+
 ## Features
 
 - Interactive map showing watersheds, stream gauges, and water quality metrics
@@ -16,6 +18,8 @@ A lightweight, web-based map application that visualizes freshwater health indic
 - Layer toggles for different data types
 - Mobile-responsive design
 - Accessibility features (color contrast, keyboard navigation)
+
+![map](images/charts.png)
 
 ## Tech Stack
 
