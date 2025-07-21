@@ -1,17 +1,17 @@
 {
   "meta": {
-    "export_date": "2025-07-10T12:30:00.000000",
-    "total_sites": 10,
-    "focus_area": "San Juan River Basin",
+    "export_date": "2025-07-11T16:00:00.000000",
+    "total_sites": 22,
+    "focus_area": "San Juan River Basin & Direct Tributaries",
     "bounds": {
-      "north": 37.5,
+      "north": 38.0,
       "south": 36.0,
-      "east": -107.0,
-      "west": -110.0
+      "east": -106.0,
+      "west": -109.5
     },
     "data_source": "USGS National Water Information System",
-    "last_updated": "2025-07-10",
-    "notes": "Comprehensive San Juan River basin monitoring stations including mainstem and major tributaries"
+    "last_updated": "2025-07-11",
+    "notes": "Focused on San Juan River watershed: San Juan River mainstem, Animas River system, La Plata River, Piedra River, Los Pinos River, Florida River, and closely related Dolores River tributaries in SW Colorado"
   },
   "sites": [
     {
@@ -20,140 +20,197 @@
       "latitude": 37.2655,
       "longitude": -107.011,
       "state": "CO",
-      "county": "007",
-      "hucCode": "14080101",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09342500",
-      "description": "Upper San Juan River headwaters gauge"
+      "county": "Archuleta",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09342500/"
+    },
+    {
+      "siteNo": "09343000",
+      "name": "WEST FORK SAN JUAN RIVER NEAR PAGOSA SPRINGS, CO",
+      "latitude": 37.3239,
+      "longitude": -106.963,
+      "state": "CO",
+      "county": "Archuleta",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09343000/"
+    },
+    {
+      "siteNo": "09349800",
+      "name": "EAST FORK SAN JUAN RIVER NEAR PAGOSA SPRINGS, CO",
+      "latitude": 37.3797,
+      "longitude": -106.8628,
+      "state": "CO",
+      "county": "Archuleta",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09349800/"
+    },
+    {
+      "siteNo": "09354500",
+      "name": "LOS PINOS RIVER AT LA BOCA, CO",
+      "latitude": 37.0064,
+      "longitude": -107.5897,
+      "state": "CO",
+      "county": "La Plata",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09354500/"
     },
     {
       "siteNo": "09355500",
-      "name": "SAN JUAN RIVER NEAR ARCHULETA, NM",
-      "latitude": 36.9875,
-      "longitude": -107.3192,
+      "name": "SPRING CREEK AT LA BOCA, CO",
+      "latitude": 37.0092,
+      "longitude": -107.5928,
+      "state": "CO",
+      "county": "La Plata",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09355500/"
+    },
+    {
+      "siteNo": "09358000",
+      "name": "ANIMAS RIVER AT SILVERTON, CO",
+      "latitude": 37.8119,
+      "longitude": -107.6642,
+      "state": "CO",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09358000/"
+    },
+    {
+      "siteNo": "09358550",
+      "name": "CEMENT CREEK AT SILVERTON, CO",
+      "latitude": 37.8089,
+      "longitude": -107.6631,
+      "state": "CO",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09358550/"
+    },
+    {
+      "siteNo": "09359010",
+      "name": "MINERAL CREEK AT SILVERTON, CO",
+      "latitude": 37.8108,
+      "longitude": -107.6622,
+      "state": "CO",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09359010/"
+    },
+    {
+      "siteNo": "09359020",
+      "name": "ANIMAS RIVER BELOW SILVERTON, CO",
+      "latitude": 37.8019,
+      "longitude": -107.6533,
+      "state": "CO",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09359020/"
+    },
+    {
+      "siteNo": "09361500",
+      "name": "ANIMAS RIVER AT DURANGO, CO",
+      "latitude": 37.2803,
+      "longitude": -107.8803,
+      "state": "CO",
+      "county": "La Plata",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09361500/"
+    },
+    {
+      "siteNo": "09362750",
+      "name": "FLORIDA RIVER ABOVE LEMON RESERVOIR NEAR DURANGO, CO",
+      "latitude": 37.4233,
+      "longitude": -107.8369,
+      "state": "CO",
+      "county": "La Plata",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09362750/"
+    },
+    {
+      "siteNo": "09363500",
+      "name": "ANIMAS RIVER NEAR CEDAR HILL, NM",
+      "latitude": 37.0403,
+      "longitude": -107.8769,
       "state": "NM",
-      "county": "045", 
-      "hucCode": "14080101",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09355500",
-      "description": "San Juan River in upper basin near Colorado-New Mexico border"
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09363500/"
+    },
+    {
+      "siteNo": "09364010",
+      "name": "ANIMAS RIVER BELOW AZTEC, NM",
+      "latitude": 36.8236,
+      "longitude": -108.0042,
+      "state": "NM",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09364010/"
+    },
+    {
+      "siteNo": "09364500",
+      "name": "LA PLATA RIVER AT COLORADO-NEW MEXICO STATE LINE",
+      "latitude": 37.0003,
+      "longitude": -108.2042,
+      "state": "NM",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09364500/"
     },
     {
       "siteNo": "09365000",
       "name": "SAN JUAN RIVER AT FARMINGTON, NM",
-      "latitude": 36.7230,
-      "longitude": -108.2256,
+      "latitude": 36.7281,
+      "longitude": -108.1814,
       "state": "NM",
-      "county": "045",
-      "hucCode": "14080105",
-      "parameterCode": "00060", 
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09365000",
-      "description": "Major San Juan River gauge at Farmington with 90+ years of data"
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09365000/"
+    },
+    {
+      "siteNo": "09367500",
+      "name": "LA PLATA RIVER NEAR FARMINGTON, NM",
+      "latitude": 36.7511,
+      "longitude": -108.1867,
+      "state": "NM",
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09367500/"
+    },
+    {
+      "siteNo": "09367540",
+      "name": "PIEDRA RIVER NEAR ARBOLES, CO",
+      "latitude": 37.0422,
+      "longitude": -107.4044,
+      "state": "CO",
+      "county": "Archuleta",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09367540/"
     },
     {
       "siteNo": "09368000",
       "name": "SAN JUAN RIVER AT SHIPROCK, NM",
       "latitude": 36.7856,
-      "longitude": -108.7267,
+      "longitude": -108.7309,
       "state": "NM",
-      "county": "045",
-      "hucCode": "14080105",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09368000",
-      "description": "San Juan River at Shiprock"
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09368000/"
     },
     {
       "siteNo": "09371010",
       "name": "SAN JUAN RIVER AT FOUR CORNERS, CO",
-      "latitude": 36.9986,
-      "longitude": -109.0447,
+      "latitude": 37.0003,
+      "longitude": -109.0456,
       "state": "CO",
-      "county": "083",
-      "hucCode": "14080105",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09371010",
-      "description": "San Juan River at Four Corners Monument"
+      "county": "Montezuma",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09371010/"
     },
     {
       "siteNo": "09379500",
       "name": "SAN JUAN RIVER NEAR BLUFF, UT",
-      "latitude": 37.1507,
-      "longitude": -109.8667,
+      "latitude": 37.1906,
+      "longitude": -109.5653,
       "state": "UT",
-      "county": "037",
-      "hucCode": "14080205",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09379500",
-      "description": "Lower San Juan River with 100+ years of historical data"
+      "county": "San Juan",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09379500/"
     },
     {
-      "siteNo": "09364500",
-      "name": "ANIMAS RIVER AT FARMINGTON, NM",
-      "latitude": 36.7281,
-      "longitude": -108.1842,
-      "state": "NM",
-      "county": "045",
-      "hucCode": "14080104",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09364500",
-      "description": "Animas River at mouth near Farmington"
-    },
-    {
-      "siteNo": "09361500",
-      "name": "ANIMAS RIVER AT DURANGO, CO",
-      "latitude": 37.2756,
-      "longitude": -107.8803,
+      "siteNo": "09166500",
+      "name": "DOLORES RIVER AT DOLORES, CO",
+      "latitude": 37.4706,
+      "longitude": -108.4961,
       "state": "CO",
-      "county": "067",
-      "hucCode": "14080104",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09361500",
-      "description": "Animas River at Durango with 113+ years of data"
+      "county": "Montezuma",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09166500/"
     },
     {
-      "siteNo": "09359020",
-      "name": "ANIMAS RIVER AT 32ND STREET AT DURANGO, CO",
-      "latitude": 37.2478,
-      "longitude": -107.8664,
+      "siteNo": "09171100",
+      "name": "DOLORES RIVER NEAR BEDROCK, CO",
+      "latitude": 38.3461,
+      "longitude": -108.8653,
       "state": "CO",
-      "county": "067",
-      "hucCode": "14080104",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09359020",
-      "description": "Animas River in Durango city limits"
-    },
-
-    {
-      "siteNo": "09367540",
-      "name": "LA PLATA RIVER AT COLORADO-NEW MEXICO STATE LINE",
-      "latitude": 37.0003,
-      "longitude": -108.2017,
-      "state": "NM",
-      "county": "045",
-      "hucCode": "14080104",
-      "parameterCode": "00060",
-      "parameterName": "Streamflow (Discharge)",
-      "unit": "cfs",
-      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09367540",
-      "description": "La Plata River tributary at state line"
+      "county": "Montrose",
+      "usgsUrl": "https://waterdata.usgs.gov/monitoring-location/09171100/"
     }
   ]
 }

@@ -10,6 +10,17 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('P7D');
   const [comparisonSiteId, setComparisonSiteId] = useState('');
+  const [primarySiteId, setPrimarySiteId] = useState('');
+
+  // Initialize primary station when modal opens
+  useEffect(() => {
+    if (isOpen && siteData && !primarySiteId) {
+      setPrimarySiteId(siteData.siteNo);
+    }
+  }, [isOpen, siteData, primarySiteId]);
+
+  // Get current primary site data
+  const currentPrimarySite = allSites.find(site => site.siteNo === primarySiteId) || siteData;
 
   // Time period options supported by USGS
   const timePeriods = [
@@ -21,13 +32,13 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
   ];
 
   const loadChartData = useCallback(async () => {
-    if (!siteData) return;
+    if (!primarySiteId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetchStreamflowData(siteData.siteNo, selectedPeriod);
+      const response = await fetchStreamflowData(primarySiteId, selectedPeriod);
       
       if (response && response.value && response.value.timeSeries && response.value.timeSeries.length > 0) {
         const timeSeries = response.value.timeSeries[0];
@@ -56,8 +67,8 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
               flow: flow,
               condition: condition,
               parsedDate: date,
-              siteId: siteData.siteNo,
-              siteName: siteData.name
+              siteId: primarySiteId,
+              siteName: currentPrimarySite?.name || 'Unknown Site'
             };
           })
           .reverse(); // Most recent first
@@ -73,7 +84,7 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
     } finally {
       setLoading(false);
     }
-  }, [siteData, selectedPeriod]);
+  }, [primarySiteId, selectedPeriod, currentPrimarySite]);
 
   const loadComparisonData = useCallback(async () => {
     if (!comparisonSiteId) return;
@@ -222,10 +233,10 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
   }, []);
 
   useEffect(() => {
-    if (isOpen && siteData) {
+    if (isOpen && primarySiteId) {
       loadChartData();
     }
-  }, [isOpen, siteData, loadChartData]);
+  }, [isOpen, primarySiteId, loadChartData]);
 
   useEffect(() => {
     console.log('Comparison effect triggered:', { isOpen, comparisonSiteId });
@@ -245,18 +256,30 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
     setComparisonSiteId(siteId);
   };
 
+  const handlePrimarySiteChange = (siteId) => {
+    console.log('Primary site changed to:', siteId);
+    setPrimarySiteId(siteId);
+    // Clear comparison data when primary station changes
+    setComparisonSiteId('');
+    setComparisonData([]);
+  };
+
   // Reset comparison when modal closes
   useEffect(() => {
     if (!isOpen) {
       setComparisonSiteId('');
       setComparisonData([]);
+      setPrimarySiteId('');
     }
   }, [isOpen]);
 
   // Get available sites for comparison (excluding current site)
   const availableComparisonSites = allSites.filter(site => 
-    site.siteNo !== siteData?.siteNo
+    site.siteNo !== primarySiteId
   ).sort((a, b) => a.name.localeCompare(b.name));
+
+  // Get available sites for primary station (all sites)
+  const availablePrimarySites = allSites.sort((a, b) => a.name.localeCompare(b.name));
 
   const formatFlow = (flow) => {
     if (flow === null || flow === undefined) return 'No data';
@@ -280,12 +303,88 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
         {/* Modal Header */}
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">{siteData?.name || 'Monitoring Station'}</h2>
-            <p className="modal-subtitle">Site ID: {siteData?.siteNo}</p>
+            <h2 className="modal-title">{currentPrimarySite?.name || 'Monitoring Station'}</h2>
+            <p className="modal-subtitle">Site ID: {currentPrimarySite?.siteNo}</p>
           </div>
           <button className="modal-close" onClick={onClose}>
             ×
           </button>
+        </div>
+
+        {/* Station Selection Controls */}
+        <div className="station-selection-controls">
+          {/* Primary Station Controls */}
+          {availablePrimarySites.length > 0 && (
+            <div className="primary-station-controls">
+              <span className="controls-label">Primary Station:</span>
+              <div className="primary-station-dropdown">
+                <select 
+                  value={primarySiteId} 
+                  onChange={(e) => handlePrimarySiteChange(e.target.value)}
+                  disabled={loading}
+                  className="primary-station-select"
+                >
+                  <option value="">Select a station to view...</option>
+                  {availablePrimarySites.map(site => (
+                    <option key={site.siteNo} value={site.siteNo}>
+                      {site.name} ({site.siteNo})
+                    </option>
+                  ))}
+                </select>
+                {loading && (
+                  <div className="primary-station-loading">
+                    <div className="loading-spinner-small"></div>
+                    <span>Loading primary data...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Comparison Controls */}
+          {availableComparisonSites.length > 0 && (
+            <div className="comparison-controls">
+              <span className="controls-label">Compare with:</span>
+              <div className="comparison-dropdown">
+                <select 
+                  value={comparisonSiteId} 
+                  onChange={(e) => handleComparisonSiteChange(e.target.value)}
+                  disabled={loading || comparisonLoading}
+                  className="comparison-select"
+                >
+                  <option value="">Select a station to compare...</option>
+                  {availableComparisonSites.map(site => (
+                    <option key={site.siteNo} value={site.siteNo}>
+                      {site.name} ({site.siteNo})
+                    </option>
+                  ))}
+                </select>
+                {comparisonLoading && (
+                  <div className="comparison-loading">
+                    <div className="loading-spinner-small"></div>
+                    <span>Loading comparison data...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Time Period Controls */}
+        <div className="time-period-controls">
+          <span className="controls-label">Time Period:</span>
+          <div className="period-buttons">
+            {timePeriods.map(period => (
+              <button
+                key={period.value}
+                className={`period-button ${selectedPeriod === period.value ? 'active' : ''}`}
+                onClick={() => handlePeriodChange(period.value)}
+                disabled={loading}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Site Information Panel */}
@@ -312,7 +411,7 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
             <div className="info-item">
               <span className="info-label">Location</span>
               <span className="info-value">
-                {siteData?.state} • {siteData?.county}
+                {currentPrimarySite?.state} • {currentPrimarySite?.county}
               </span>
             </div>
             <div className="info-item">
@@ -323,51 +422,6 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
             </div>
           </div>
         </div>
-
-        {/* Time Period Controls */}
-        <div className="time-period-controls">
-          <span className="controls-label">Time Period:</span>
-          <div className="period-buttons">
-            {timePeriods.map(period => (
-              <button
-                key={period.value}
-                className={`period-button ${selectedPeriod === period.value ? 'active' : ''}`}
-                onClick={() => handlePeriodChange(period.value)}
-                disabled={loading}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Comparison Controls */}
-        {availableComparisonSites.length > 0 && (
-          <div className="comparison-controls">
-            <span className="controls-label">Compare with:</span>
-            <div className="comparison-dropdown">
-              <select 
-                value={comparisonSiteId} 
-                onChange={(e) => handleComparisonSiteChange(e.target.value)}
-                disabled={loading || comparisonLoading}
-                className="comparison-select"
-              >
-                <option value="">Select a station to compare...</option>
-                {availableComparisonSites.map(site => (
-                  <option key={site.siteNo} value={site.siteNo}>
-                    {site.name} ({site.siteNo})
-                  </option>
-                ))}
-              </select>
-              {comparisonLoading && (
-                <div className="comparison-loading">
-                  <div className="loading-spinner-small"></div>
-                  <span>Loading comparison data...</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Chart Section */}
         <div className="modal-chart-section">
@@ -412,7 +466,7 @@ const GaugeModal = ({ isOpen, onClose, siteData, siteCondition, allSites = [] })
             Data source: USGS National Water Information System
           </p>
           <a 
-            href={siteData?.usgsUrl} 
+            href={currentPrimarySite?.usgsUrl} 
             target="_blank" 
             rel="noopener noreferrer"
             className="usgs-link"

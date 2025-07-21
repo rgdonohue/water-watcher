@@ -1126,36 +1126,33 @@
   cursor: not-allowed;
 }
 
-/* Comparison controls */
+/* Comparison Controls */
 .comparison-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
-  background: #f9fafb;
+  margin-bottom: 20px;
+}
+
+.comparison-controls .controls-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
 }
 
 .comparison-dropdown {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex: 1;
+  gap: 12px;
 }
 
 .comparison-select {
-  padding: 0.5rem 0.75rem;
+  flex: 1;
+  padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   background: white;
-  font-size: 0.875rem;
-  min-width: 300px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.comparison-select:hover {
-  border-color: #9ca3af;
+  font-size: 14px;
+  color: #374151;
+  max-width: 400px;
 }
 
 .comparison-select:focus {
@@ -1165,19 +1162,87 @@
 }
 
 .comparison-select:disabled {
-  background-color: #f3f4f6;
+  background: #f9fafb;
+  color: #6b7280;
   cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .comparison-loading {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 8px;
+  font-size: 12px;
   color: #6b7280;
 }
 
+/* Primary Station Controls */
+.primary-station-controls {
+  margin-bottom: 20px;
+}
+
+.primary-station-controls .controls-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.primary-station-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.primary-station-select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  color: #374151;
+  max-width: 400px;
+}
+
+.primary-station-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.primary-station-select:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.primary-station-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Station Selection Controls Container */
+.station-selection-controls {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.station-selection-controls .primary-station-controls {
+  margin-bottom: 16px;
+}
+
+.station-selection-controls .comparison-controls {
+  margin-bottom: 0;
+}
+
+/* Loading Spinner for Dropdowns */
 .loading-spinner-small {
   width: 16px;
   height: 16px;

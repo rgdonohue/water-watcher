@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, ZoomControl } from 'react-leaflet'
 import { Icon, divIcon } from 'leaflet'
-import { fetchMultipleSiteConditions, COLORADO_PLATEAU_BOUNDS } from '../services/usgsService'
+import { fetchMultipleSiteConditions, fetchStreamflowData, COLORADO_PLATEAU_BOUNDS } from '../services/usgsService'
 import WaterQualityLayer from './WaterQualityLayer';
 import DroughtLayer from './DroughtLayer';
 import RiversLayer from './RiversLayer';
@@ -10,6 +10,66 @@ import watershedData from '../data/san-juan-watershed.json'
 import ErrorBoundary from './ErrorBoundary'
 import './WaterMap.css'
 
+// Sparkline component for showing 7-day flow trends
+const Sparkline = ({ data, width = 120, height = 30, color = '#2563eb' }) => {
+  if (!data || data.length < 2) {
+    return (
+      <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#6b7280' }}>
+        No trend data
+      </div>
+    );
+  }
+
+  const flows = data.map(d => d.flow).filter(f => f !== null && !isNaN(f));
+  if (flows.length < 2) {
+    return (
+      <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#6b7280' }}>
+        Insufficient data
+      </div>
+    );
+  }
+
+  const minFlow = Math.min(...flows);
+  const maxFlow = Math.max(...flows);
+  const range = maxFlow - minFlow;
+  
+  // Create SVG path
+  const points = flows.map((flow, index) => {
+    const x = (index / (flows.length - 1)) * (width - 4); // Leave 2px margin on each side
+    const y = range > 0 ? height - 4 - ((flow - minFlow) / range) * (height - 8) : height / 2; // Leave 2px margin top/bottom
+    return `${x},${y}`;
+  });
+  
+  const pathData = `M ${points.join(' L ')}`;
+  
+  // Determine trend direction
+  const firstFlow = flows[0];
+  const lastFlow = flows[flows.length - 1];
+  const trend = lastFlow > firstFlow ? 'up' : lastFlow < firstFlow ? 'down' : 'stable';
+  const trendColor = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#6b7280';
+  
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <svg width={width} height={height} style={{ border: '1px solid #e5e7eb', borderRadius: '4px', background: '#f9fafb' }}>
+        <path
+          d={pathData}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Add dots for first and last points */}
+        <circle cx={points[0].split(',')[0]} cy={points[0].split(',')[1]} r="2" fill={color} />
+        <circle cx={points[points.length - 1].split(',')[0]} cy={points[points.length - 1].split(',')[1]} r="2" fill={trendColor} />
+      </svg>
+      <div style={{ fontSize: '10px', color: trendColor, fontWeight: '500' }}>
+        {trend === 'up' ? '↗' : trend === 'down' ? '↘' : '→'}
+      </div>
+    </div>
+  );
+};
+
 // Fix for default markers in React Leaflet
 delete Icon.Default.prototype._getIconUrl
 Icon.Default.mergeOptions({
@@ -17,6 +77,88 @@ Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 })
+
+// Popup content component with sparkline
+const PopupContent = ({ site, status, currentFlow }) => {
+  const [sparklineData, setSparklineData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSparklineData = async () => {
+      if (!site?.siteNo) return;
+      
+      setLoading(true);
+      try {
+        const response = await fetchStreamflowData(site.siteNo, 'P7D');
+        if (response && response.value && response.value.timeSeries && response.value.timeSeries.length > 0) {
+          const timeSeries = response.value.timeSeries[0];
+          const values = timeSeries.values[0].value || [];
+          
+          const formattedData = values
+            .filter(item => item.value && item.value !== '-999999')
+            .map(item => ({
+              dateTime: new Date(item.dateTime),
+              flow: parseFloat(item.value)
+            }))
+            .sort((a, b) => a.dateTime - b.dateTime);
+          
+          setSparklineData(formattedData);
+        }
+      } catch (error) {
+        console.error('Error fetching sparkline data:', error);
+        setSparklineData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSparklineData();
+  }, [site?.siteNo]);
+
+  return (
+    <div className="site-popup">
+      <h4>{site.name}</h4>
+      <div className="site-details">
+        <div className="info-row">
+          <span className="label">Site ID:</span>
+          <span className="value">{site.siteNo}</span>
+        </div>
+        <div className="info-row">
+          <span className="label">Status:</span>
+          <span className={`value status-${status}`}>
+            {status === 'online' ? 'Live Data' : 'Offline'}
+          </span>
+        </div>
+        {status === 'online' && currentFlow && (
+          <div className="info-row">
+            <span className="label">Current Flow:</span>
+            <span className="value">
+              {currentFlow.toLocaleString()} cfs
+            </span>
+          </div>
+        )}
+        <div className="info-row">
+          <span className="label">Location:</span>
+          <span className="value">
+            {site.state} • {site.county}
+          </span>
+        </div>
+        {status === 'online' && (
+          <div className="info-row">
+            <span className="label">7-Day Trend:</span>
+            <div className="value">
+              {loading ? (
+                <div style={{ fontSize: '10px', color: '#6b7280' }}>Loading...</div>
+              ) : (
+                <Sparkline data={sparklineData} />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Create a loading marker
 const createLoadingMarker = () => {
@@ -609,56 +751,17 @@ const WaterMap = ({
           position={[site.latitude, site.longitude]}
           icon={loading || layerLoading.markers ? createLoadingMarker() : createProportionalMarker(status, currentFlow)}
           eventHandlers={{
-            click: () => handleGaugeClick(site)
+            click: () => handleGaugeClick(site),
+            mouseover: (e) => {
+              e.target.openPopup();
+            },
+            mouseout: (e) => {
+              e.target.closePopup();
+            }
           }}
         >
           <Popup>
-            <div className="site-popup">
-              <h4>{site.name}</h4>
-              <div className="site-details">
-                <div className="info-row">
-                  <span className="label">Site ID:</span>
-                  <span className="value">{site.siteNo}</span>
-                </div>
-                <div className="info-row">
-                  <span className="label">Status:</span>
-                  <span className={`value status-${status}`}>
-                    {status === 'online' ? 'Live Data' : 'Offline'}
-                  </span>
-                </div>
-                {status === 'online' && currentFlow && (
-                  <div className="info-row">
-                    <span className="label">Current Flow:</span>
-                    <span className="value">
-                      {currentFlow.toLocaleString()} cfs
-                    </span>
-                  </div>
-                )}
-                <div className="info-row">
-                  <span className="label">Location:</span>
-                  <span className="value">
-                    {site.state} • {site.county}
-                  </span>
-                </div>
-              </div>
-              <div className="popup-actions">
-                <button 
-                  className="btn btn-primary btn-sm"
-                  onClick={() => handleGaugeClick(site)}
-                >
-                  View Details
-                </button>
-                <a 
-                  href={site.usgsUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="btn btn-secondary btn-sm"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  USGS Data
-                </a>
-              </div>
-            </div>
+            <PopupContent site={site} status={status} currentFlow={currentFlow} />
           </Popup>
         </Marker>
       )

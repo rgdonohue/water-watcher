@@ -105,7 +105,8 @@ export const fetchStreamflowData = async (siteNo, period = 'P7D') => {
       headers: {
         'Accept': 'application/json',
         'Cache-Control': 'no-cache'
-      }
+      },
+      redirect: 'follow' // Automatically follow HTTP 301 redirects
     });
     
     clearTimeout(timeoutId);
@@ -249,7 +250,9 @@ export const fetchMultipleSiteConditions = async (siteNumbers) => {
       });
       
       const url = `${USGS_BASE_URL}?${params}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        redirect: 'follow' // Automatically follow HTTP 301 redirects
+      });
       
       if (!response.ok) {
         console.error(`USGS API error for chunk: ${response.status}`);
@@ -347,7 +350,9 @@ export const fetchSiteInfo = async (siteNo) => {
   const url = `${USGS_SITE_URL}/?format=json&sites=${siteNo}&siteOutput=expanded`
   
   try {
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      redirect: 'follow' // Automatically follow HTTP 301 redirects
+    })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     
     const data = await response.json()
